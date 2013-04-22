@@ -1,9 +1,6 @@
 # Repeated field
 On blur mode, validation isn't perfomed when you change the first repeated field after the second.
 
-# Email
-checkMX is not perfomed
-
 # Url
 JsFormValidation constraint checks for real IPv4
 
@@ -11,13 +8,13 @@ JsFormValidation constraint checks for real IPv4
 Javascript can't manipulate remote file directly in all browsers
 
 # Callback
-Not implemented yet
+It will not be implemented, because CallbackValidator has been deprecated since 2.1 version of Symfony.
 
 # Valid
 Not implemented yet
 
 # UniqueEntity
-Not implemented yet
+It has not been implemented for multiple-column yet.
 
 # All
 Not implemented yet
