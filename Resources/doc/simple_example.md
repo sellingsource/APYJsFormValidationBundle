@@ -26,6 +26,9 @@ myformsuccess:
 
 ## Step 3: Create an product entity with constraints
 
+> **Note!** You may create form which is not relate on Entity.
+> Look at [Validation of the forms which are built manually.](simpleform_example.md)
+
 ```php
 <?php
 // src/MyProject/MyBundle/Entity/Product.php
@@ -42,7 +45,7 @@ class Product
 
     /**
      * @Assert\NotBlank()
-     * @Assert\Min(limit=20)
+     * @Assert\Length(min=20)
      */
     protected $price;
 
@@ -76,7 +79,7 @@ class Product
 
 <!-- Include prerequisite librairies and bundles -->
 <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
-<script type="text/javascript" src="{{ asset('bundles/bazingaexposetranslation/js/translation.js') }}"></script>
+<script type="text/javascript" src="{{ asset('bundles/bazingaexposetranslation/js/translator.min.js') }}"></script>
 <script type="text/javascript" src="{{ url('bazinga_exposetranslation_js', { 'domain_name': 'validators' }) }}"></script>
 
 <!-- Call JsFormValidationBundle -->
@@ -147,3 +150,6 @@ Go to your form page. ( ie : http://localhost/app_dev.php/myform )
 * Put some text in the name field and the number 10 in the price field.
 * Submit the form.
 * A validation message for the price field appears. The submit action is prevented by the bundle when all fields are not correctly filled.
+
+Read also:
+[Validation of the forms which are built manually.](simpleform_example.md)
