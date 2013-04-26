@@ -372,6 +372,9 @@ class FormValidationScriptGenerator
                 }
             }
 
+            //Add constraints that were added directly to the form.
+            $this->addFormViewConstraints($formView, $fieldsConstraints);
+
             // Dispatch JsfvEvents::postProcess event
             $postProcessEvent = new PostProcessEvent($formView, $fieldsConstraints);
             $dispatcher->dispatch(JsfvEvents::postProcess, $postProcessEvent);
@@ -415,5 +418,51 @@ class FormValidationScriptGenerator
         }
 
         return $this->container->get('templating.helper.assets')->getUrl($scriptPath.$scriptFile);
+    }
+
+    /**
+     * @param FormView $formView
+     * @param $fieldsConstraints
+     */
+    public function addFormViewConstraints(FormView $formView, FieldsConstraints $fieldsConstraints)
+    {
+        foreach ($formView->vars['constraints'] as $constraint) {
+            $classParts = explode(chr(92), get_class($constraint));
+            $constraintName = end($classParts);
+            $constraintParameters = array();
+
+            if (!$fieldsConstraints->hasLibrary($constraintName)) {
+                $librairy = "APYJsFormValidationBundle:Constraints:{$constraintName}Validator.js.twig";
+                $fieldsConstraints->addLibrary($constraintName, $librairy);
+            }
+
+            $constraintProperties = get_object_vars($constraint);
+            foreach ($constraintProperties as $variable => $value) {
+                if (is_array($value)) {
+                    $value = json_encode($value);
+                }
+                elseif (stristr('pattern', $variable) !== false) {
+                    $regexParts = explode('/', strrev($value));
+
+                    $regexParts[0] = preg_replace('/[^gim]/', '', $regexParts[0]);
+                    $value = strrev(implode('/', $regexParts));
+                }
+                else {
+                    $value = json_encode($value);
+                }
+
+                $constraintParameters[] = "$variable:$value";
+            }
+
+            $fieldsConstraints->addFieldConstraint(
+                $formView->vars['id'],
+                array('name' => $constraintName, 'parameters' => '{' . implode(', ', $constraintParameters) . '}')
+            );
+        }
+
+        foreach ($formView->children as $child)
+        {
+            $this->addFormViewConstraints($child, $fieldsConstraints);
+        }
     }
 }
