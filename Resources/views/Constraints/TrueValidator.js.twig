@@ -1,6 +1,14 @@
 function True(field, params)
 {
-    var value = field && field.nodeName ? {{ getJsFormElementValue('field') }} : field;
+    var value;
+    if (field.type == 'checkbox' && !field.checked )
+    {
+        value = '';
+    }
+    else
+    {
+        value = field && field.nodeName ? {{ getJsFormElementValue('field') }} : field;
+    }
 
     if (isNotDefined(value)) {
         return true;

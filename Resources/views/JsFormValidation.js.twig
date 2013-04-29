@@ -85,7 +85,23 @@ var jsfv = new function () {
                 field = jsfv.id(field);
             }
 {% block onEvent %}
-            $(field).bind(eventType, handler);
+            $(field).bind(eventType, function () {
+                var result = handler();
+
+                if (eventType == 'blur' || eventType == 'change')
+                {
+                    if (result)
+                    {
+                        $(field).trigger('pass');
+                    }
+                    else
+                    {
+                        $(field).trigger('fail');
+                    }
+                    return true;
+                }
+                return result;
+            });
 {% endblock %}
         },
 {% for fieldName, constraints in fieldConstraints %}
