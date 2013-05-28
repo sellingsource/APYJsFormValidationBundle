@@ -11,11 +11,13 @@
         <parameter key="form.type_extension.repeated_field_parameters.class">APY\JsFormValidationBundle\Form\Extension\RepeatedTypeExtension</parameter>
         <parameter key="jsfv.validation_groups_listener.class">APY\JsFormValidationBundle\EventListener\ValidationGroupsListener</parameter>
         <parameter key="jsfv.repeated_field_listener.class">APY\JsFormValidationBundle\EventListener\RepeatedFieldListener</parameter>
+        <parameter key="jsfv.naming_strategy.class">APY\JsFormValidationBundle\Generator\ScriptNaming\DefaultNamingStrategy</parameter>
     </parameters>
 
     <services>
         <service id="jsfv.generator" class="%jsfv.generator.class%">
             <argument type="service" id="service_container" />
+            <argument type="service" id="jsfv.script_naming_strategy" />
         </service>
 
         <service id="jsfv" alias="jsfv.generator" />
@@ -47,6 +49,14 @@
 
         <service id="jsfv.repeated_field_listener" class="%jsfv.repeated_field_listener.class%">
             <tag name="kernel.event_listener" event="jsfv.post_process" method="onJsfvPostProcess" />
+        </service>
+
+        <service id="jsfv.script_naming_strategy" alias="jsfv.default_script_naming_strategy"/>
+
+        <service id="jsfv.default_script_naming_strategy" class="%jsfv.naming_strategy.class%">
+            <call method="setContainer">
+                <argument type="service" id="service_container"/>
+            </call>
         </service>
     </services>
 

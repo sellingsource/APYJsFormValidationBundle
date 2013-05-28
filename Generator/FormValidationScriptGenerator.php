@@ -11,19 +11,20 @@
 
 namespace APY\JsFormValidationBundle\Generator;
 
-use Doctrine\ORM\EntityManager;
-use APY\JsFormValidationBundle\Generator\GettersLibraries;
-use APY\JsFormValidationBundle\Generator\PreProcessEvent;
 use APY\JsFormValidationBundle\Generator\FieldsConstraints;
+use APY\JsFormValidationBundle\Generator\GettersLibraries;
 use APY\JsFormValidationBundle\Generator\PostProcessEvent;
+use APY\JsFormValidationBundle\Generator\PreProcessEvent;
+use APY\JsFormValidationBundle\Generator\ScriptNaming\NamingStrategy;
 use APY\JsFormValidationBundle\JsfvEvents;
+use Assetic\Asset\AssetCollection;
+use Assetic\Filter\Yui\JsCompressorFilter;
+use Doctrine\Common\Annotations\AnnotationReader;
+use Doctrine\ORM\EntityManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Form\FormView;
-use Doctrine\Common\Annotations\AnnotationReader;
 use Symfony\Component\Validator\Mapping\ClassMetadata;
 use Symfony\Component\Validator\Mapping\Loader\AnnotationLoader;
-use Assetic\Filter\Yui\JsCompressorFilter;
-use Assetic\Asset\AssetCollection;
 
 class FormValidationScriptGenerator
 {
@@ -44,13 +45,20 @@ class FormValidationScriptGenerator
     protected $em;
 
     /**
+     * @var NamingStrategy
+     */
+    protected $namingStrategy;
+
+    /**
      * Constructor
      *
      * @param ContainerInterface $container
+     * @param ScriptNaming\NamingStrategy $namingStrategy
      */
-    public function __construct(ContainerInterface $container)
+    public function __construct(ContainerInterface $container, NamingStrategy $namingStrategy)
     {
         $this->container = $container;
+        $this->namingStrategy = $namingStrategy;
         $this->em = $container->get('doctrine')->getManager();
     }
 
@@ -185,12 +193,12 @@ class FormValidationScriptGenerator
     public function generate(FormView $formView, $overwrite = false)
     {
         // Prepare output file
-        $scriptPath = $this->container->getParameter('apy_js_form_validation.script_directory');
-        $scriptRealPath = $this->container->getParameter('assetic.write_to').'/'.$scriptPath;
+        $filename = $this->namingStrategy->getScriptFilename($formView);
+        $realScriptFile = $this->namingStrategy->getRealScriptPath($filename);
+        $realScriptPath = dirname($realScriptFile);
         $formName = isset($formView->vars['name']) ? $formView->vars['name'] : 'form';
-        $scriptFile = strtolower($this->container->get('request')->get('_route')) . "_" . strtolower($formName) . ".js";
 
-        if ($overwrite || false === file_exists($scriptRealPath . $scriptFile)) {
+        if ($overwrite || false === file_exists($realScriptFile)) {
             // Initializes variables
             $fieldsConstraints = new FieldsConstraints();
             $gettersLibraries = new GettersLibraries($this->container, $formView);
@@ -218,7 +226,8 @@ class FormValidationScriptGenerator
 
                 if (!empty($metadata->constraints)) {
                     foreach ($metadata->constraints as $constraint) {
-                        $constraintName = end((explode(chr(92), get_class($constraint))));
+                        $constraintParts = explode(chr(92), get_class($constraint));
+                        $constraintName = end($constraintParts);
                         if ($constraintName == 'UniqueEntity') {
                             if (is_array($constraint->fields)) {
                                 //It has not been implemented yet
@@ -245,10 +254,11 @@ class FormValidationScriptGenerator
                                 continue;
                             }
                             foreach ($getterMetadata->constraints as $constraint) {
-                                /* @var $constraint \Symfony\Component\Validator */
+                                /* @var $constraint Validator */
                                 $getterName = $getterMetadata->getName();
                                 $jsHandlerCallback = $gettersLibraries->getKey($getterMetadata, '_');
-                                $constraintName = end((explode(chr(92), get_class($constraint))));
+                                $constraintParts = explode(chr(92), get_class($constraint));
+                                $constraintName = end($constraintParts);
                                 $constraintProperties = get_object_vars($constraint);
                                 $exist = array_intersect($formValidationGroups, $constraintProperties['groups']);
                                 if (!empty($exist)) {
@@ -328,7 +338,8 @@ class FormValidationScriptGenerator
                         }
                         // we look through each field constraint
                         foreach ($constraintList as $constraint) {
-                            $constraintName = end((explode(chr(92), get_class($constraint))));
+                            $constraintParts = explode(chr(92), get_class($constraint));
+                            $constraintName = end($constraintParts);
                             $constraintProperties = get_object_vars($constraint);
 
                             // Groups are no longer needed
@@ -402,7 +413,7 @@ class FormValidationScriptGenerator
             // Create asset and compress it
             $asset = new AssetCollection();
             $asset->setContent($template);
-            $asset->setTargetPath($scriptRealPath.$scriptFile);
+            $asset->setTargetPath($realScriptFile);
 
             // Js compression
             if ($this->container->getParameter('apy_js_form_validation.yui_js')) {
@@ -410,14 +421,14 @@ class FormValidationScriptGenerator
                 $yui->filterDump($asset);
             }
 
-            $this->container->get('filesystem')->mkdir($scriptRealPath);
+            $this->container->get('filesystem')->mkdir($realScriptPath);
 
             if (false === @file_put_contents($asset->getTargetPath(), $asset->getContent())) {
                 throw new \RuntimeException('Unable to write file '.$asset->getTargetPath());
             }
         }
 
-        return $this->container->get('templating.helper.assets')->getUrl($scriptPath.$scriptFile);
+        return $this->container->get('templating.helper.assets')->getUrl($this->namingStrategy->getScriptPath($filename));
     }
 
     /**
@@ -432,8 +443,8 @@ class FormValidationScriptGenerator
             $constraintParameters = array();
 
             if (!$fieldsConstraints->hasLibrary($constraintName)) {
-                $librairy = "APYJsFormValidationBundle:Constraints:{$constraintName}Validator.js.twig";
-                $fieldsConstraints->addLibrary($constraintName, $librairy);
+                $library = "APYJsFormValidationBundle:Constraints:{$constraintName}Validator.js.twig";
+                $fieldsConstraints->addLibrary($constraintName, $library);
             }
 
             $constraintProperties = get_object_vars($constraint);

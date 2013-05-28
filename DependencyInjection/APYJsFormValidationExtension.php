@@ -69,7 +69,7 @@ class APYJsFormValidationExtension extends Extension
                     ->end()
                     ->scalarNode('validation_bundle')->defaultValue('APYJsFormValidationBundle')->end()
                     ->scalarNode('javascript_framework')->defaultValue('jquery')->end()
-                    ->scalarNode('script_directory')->defaultValue('bundles/jsformvalidation/js/')->end()
+                    ->scalarNode('script_directory')->defaultValue('bundles/jsformvalidation/js')->end()
                     ->arrayNode('warmer_routes')
                         ->canBeUnset()
                         ->prototype('scalar')->end()
