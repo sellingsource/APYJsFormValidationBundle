@@ -184,13 +184,16 @@ class FormValidationScriptGenerator
     }
 
     /**
-     * Generates client-side javascript that validates form
+     * Generates client-side javascript that validates form.
      *
-     * @param   FormView   $formView
-     * @param   boolean    $overwrite
-     * @throws  \RuntimeException
+     * Returns the base filename of the script.
+     *
+     * @param FormView $formView
+     * @param bool     $overwrite
+     * @return string the filename of the script
+     * @throws \RuntimeException
      */
-    public function generate(FormView $formView, $overwrite = false)
+    public function generateScript(FormView $formView, $overwrite = false)
     {
         // Prepare output file
         $filename = $this->namingStrategy->getScriptFilename($formView);
@@ -428,7 +431,21 @@ class FormValidationScriptGenerator
             }
         }
 
-        return $this->container->get('templating.helper.assets')->getUrl($this->namingStrategy->getScriptPath($filename));
+        return $filename;
+    }
+
+    /**
+     * Generates the javascript for the form and returns the URL to the script.
+     *
+     * @param FormView $formView
+     * @param bool     $overwrite
+     * @return string
+     */
+    public function generate(FormView $formView, $overwrite = false)
+    {
+        $filename = $this->generateScript($formView, $overwrite);
+        return $this->container->get('templating.helper.assets')
+            ->getUrl($this->namingStrategy->getScriptPath($filename));
     }
 
     /**
